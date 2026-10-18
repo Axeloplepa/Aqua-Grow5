@@ -1,0 +1,28 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+.output/
+.vercel/
+.tanstack/
+.nitro/
+
+# env / secrets
+.env
+.env.*
+
+# logs & editor
+*.log
+.DS_Store
+.vscode/
+.idea/
+
+# Grok workspace leftovers
+.grok/
+.project_id
+.github_repo
+.node_modules.lock
+attachments/
+screenshots/
+artifacts/
