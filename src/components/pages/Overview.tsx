@@ -68,8 +68,6 @@ const RANGES = [
   { id: "1h", label: "1h", ms: 60 * 60 * 1000 },
   { id: "6h", label: "6h", ms: 6 * 60 * 60 * 1000 },
   { id: "24h", label: "24h", ms: 24 * 60 * 60 * 1000 },
-  { id: "7d", label: "7 days", ms: 7 * 24 * 60 * 60 * 1000 },
-  { id: "30d", label: "30 days", ms: 30 * 24 * 60 * 60 * 1000 },
 ] as const;
 type RangeId = (typeof RANGES)[number]["id"];
 
@@ -173,40 +171,11 @@ export function Overview() {
     return dailyTotals(s.ops).find((d) => d.day === key) ?? { day: key, count: 0, liters: 0, seconds: 0 };
   }, [s.ops, s.now]);
   const lastFert = s.fert[0];
-  const alerts = useMemo(() => {
-    const items: { level: "alert" | "warn" | "info"; title: string; detail: string }[] = [];
-    if (s.status === "offline") items.push({ level: "alert", title: "Data connection offline", detail: "Live readings are unavailable. Check the ESP32 network or ThingSpeak connection." });
-    else if (s.status === "stale") items.push({ level: "warn", title: "Readings may be stale", detail: "The last sensor update is older than expected." });
-    if (s.b1 == null) items.push({ level: "warn", title: "Bed 1 sensor has no reading", detail: "No valid moisture value is currently available." });
-    else if (s.b1 < CFG.lowThreshold) items.push({ level: "warn", title: "Bed 1 moisture is low", detail: `${s.b1}% moisture · below the ${CFG.lowThreshold}% configured threshold.` });
-    else if (s.b1 > CFG.highThreshold) items.push({ level: "info", title: "Bed 1 moisture is high", detail: `${s.b1}% moisture · above the ${CFG.highThreshold}% upper threshold.` });
-    if (s.b2 == null) items.push({ level: "warn", title: "Bed 2 sensor has no reading", detail: "No valid moisture value is currently available." });
-    else if (s.b2 < CFG.lowThreshold) items.push({ level: "warn", title: "Bed 2 moisture is low", detail: `${s.b2}% moisture · below the ${CFG.lowThreshold}% configured threshold.` });
-    else if (s.b2 > CFG.highThreshold) items.push({ level: "info", title: "Bed 2 moisture is high", detail: `${s.b2}% moisture · above the ${CFG.highThreshold}% upper threshold.` });
-    if (s.status === "online" && s.pump && s.flow <= 0) items.push({ level: "warn", title: "Pump on, but no flow reported", detail: "Confirm the flow sensor and water line. This is an indicator, not a confirmed hardware fault." });
-    if (!items.length) items.push({ level: "info", title: "All checks look good", detail: "No connection or moisture warnings detected from the latest available readings." });
-    return items;
-  }, [s.status, s.b1, s.b2, s.pump, s.flow]);
+
 
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader title="Overview" sub={`Welcome back, ${s.account.name}. Here's your irrigation system at a glance.`} />
-      <div className="relative mb-6 overflow-hidden rounded-3xl border border-line bg-gradient-to-br from-[#174b45] via-[#123b43] to-[#102a35] p-5 shadow-lg sm:p-7">
-        <div className="pointer-events-none absolute -right-8 -top-16 h-48 w-48 rounded-full border border-white/10" />
-        <div className="pointer-events-none absolute -right-1 -top-9 h-36 w-36 rounded-full border border-white/10" />
-        <div className="relative flex flex-wrap items-center justify-between gap-5">
-          <div className="max-w-2xl">
-            <p className="mb-2 text-xs font-extrabold uppercase tracking-[0.2em] text-emerald-200">Smart irrigation • Live monitoring</p>
-            <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Grow smarter with Aqua-Grow.</h2>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-white/75">Monitor soil moisture, water use, equipment status, and garden activity from one workspace.</p>
-          </div>
-          <div className="rounded-2xl border border-white/15 bg-black/10 px-4 py-3 backdrop-blur-sm">
-            <p className="text-xs font-semibold uppercase tracking-wider text-white/60">System status</p>
-            <p className="mt-1 flex items-center gap-2 text-lg font-extrabold"><span className={`h-2.5 w-2.5 rounded-full ${statusDot} ${s.status === "online" ? "animate-pulse" : ""}`} />{statusText}</p>
-            <p className="mt-1 text-xs text-white/60">Updated {stamp}</p>
-          </div>
-        </div>
-      </div>
 
       <div className="mb-5 flex flex-wrap gap-2 text-sm font-semibold">
         <Pill dot={statusDot} label="System" value={statusText} />
@@ -230,26 +199,51 @@ export function Overview() {
           <span className="rounded-full border border-line px-3 py-1 text-xs font-bold text-muted">{s.pump ? "Water system active" : "Water system idle"}</span>
         </div>
         <div className="overflow-x-auto rounded-2xl bg-[#0b252c] p-2 sm:p-4">
-          <svg viewBox="0 0 760 300" role="img" aria-label="Aqua-Grow two-bed irrigation layout showing pump, main pipe, two valves, sprinklers, and moisture sensors" className="mx-auto w-full min-w-[560px] max-w-4xl">
-            <defs><linearGradient id="bedGreen" x1="0" x2="1"><stop offset="0%" stopColor="#174b3b"/><stop offset="100%" stopColor="#216747"/></linearGradient><linearGradient id="pipeBlue" x1="0" x2="1"><stop offset="0%" stopColor="#267a91"/><stop offset="100%" stopColor="#4bc6df"/></linearGradient></defs>
-            <path d="M110 154 H650" stroke="url(#pipeBlue)" strokeWidth="8" strokeLinecap="round" opacity={s.pump ? 1 : .45}/>
-            <path d="M230 154 V91 H300 M470 154 V91 H540" stroke="url(#pipeBlue)" strokeWidth="6" fill="none" strokeLinecap="round" opacity={(s.v1 || s.v2) ? 1 : .45}/>
-            <rect x="20" y="117" width="92" height="74" rx="16" fill="#163f4a" stroke="#4bc6df" strokeWidth="2"/><path d="M48 151 Q66 127 84 151 Q66 175 48 151Z" fill="#4bc6df"/><text x="66" y="208" fill="#e7f4f1" textAnchor="middle" fontSize="13" fontWeight="700">Pump</text><text x="66" y="226" fill={s.pump ? "#4cbf78" : "#8eafb4"} textAnchor="middle" fontSize="12">{s.pump ? "ON" : "OFF"}</text>
-            <rect x="300" y="28" width="150" height="108" rx="16" fill="url(#bedGreen)" stroke={s.b1 == null ? "#6d8e94" : s.b1 < CFG.lowThreshold ? "#e0b15a" : s.b1 > CFG.highThreshold ? "#38a9e0" : "#4cbf78"} strokeWidth="2"/><text x="375" y="52" fill="#e7f4f1" textAnchor="middle" fontSize="15" fontWeight="800">Bed 1</text><text x="375" y="79" fill="#ffffff" textAnchor="middle" fontSize="24" fontWeight="800">{s.b1 == null ? "--%" : `${s.b1}%`}</text><text x="375" y="100" fill="#d1f5df" textAnchor="middle" fontSize="11">Moisture sensor</text><circle cx="375" cy="119" r="5" fill={s.v1 ? "#4cbf78" : "#8eafb4"}/>
-            <rect x="460" y="180" width="150" height="102" rx="16" fill="url(#bedGreen)" stroke={s.b2 == null ? "#6d8e94" : s.b2 < CFG.lowThreshold ? "#e0b15a" : s.b2 > CFG.highThreshold ? "#38a9e0" : "#4cbf78"} strokeWidth="2"/><text x="535" y="205" fill="#e7f4f1" textAnchor="middle" fontSize="15" fontWeight="800">Bed 2</text><text x="535" y="232" fill="#ffffff" textAnchor="middle" fontSize="24" fontWeight="800">{s.b2 == null ? "--%" : `${s.b2}%`}</text><text x="535" y="252" fill="#d1f5df" textAnchor="middle" fontSize="11">Moisture sensor</text><circle cx="535" cy="266" r="5" fill={s.v2 ? "#4cbf78" : "#8eafb4"}/>
-            <rect x="196" y="139" width="68" height="30" rx="8" fill={s.v1 ? "#2d7a4c" : "#17424c"} stroke="#4bc6df"/><text x="230" y="158" fill="#e7f4f1" textAnchor="middle" fontSize="11" fontWeight="700">Valve 1</text><rect x="436" y="139" width="68" height="30" rx="8" fill={s.v2 ? "#2d7a4c" : "#17424c"} stroke="#4bc6df"/><text x="470" y="158" fill="#e7f4f1" textAnchor="middle" fontSize="11" fontWeight="700">Valve 2</text>
-            {[330,375,420].map(x => <g key={`spr1-${x}`}><path d={`M${x} 92 v-13 m-7 0 q7 -10 14 0`} stroke="#b7f3ff" strokeWidth="2" fill="none" strokeLinecap="round"/><circle cx={x} cy="75" r="2" fill="#4bc6df"/></g>)}
-            {[490,535,580].map(x => <g key={`spr2-${x}`}><path d={`M${x} 246 v-13 m-7 0 q7 -10 14 0`} stroke="#b7f3ff" strokeWidth="2" fill="none" strokeLinecap="round"/><circle cx={x} cy="229" r="2" fill="#4bc6df"/></g>)}
-            <text x="650" y="143" fill="#8eafb4" fontSize="11">Main line</text><text x="650" y="160" fill={s.pump ? "#4cbf78" : "#8eafb4"} fontSize="11">{s.pump ? "Flow active" : "No flow"}</text>
+          <svg viewBox="0 0 1000 560" role="img" aria-label="Aqua-Grow plumbing diagram: deep well and foot valve feed the pump, flow sensor and mainline; a Venturi fertilizer assembly connects to the fertilizer tank; solenoid valves supply Bed 1 and Bed 2 sprinkler lines." className="mx-auto w-full min-w-[680px] max-w-6xl">
+            <defs>
+              <linearGradient id="pipeFlow" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#258aa0"/><stop offset="100%" stopColor="#60d4e6"/></linearGradient>
+              <linearGradient id="bedGreen" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#174b3b"/><stop offset="100%" stopColor="#216747"/></linearGradient>
+              <marker id="waterArrow" markerWidth="8" markerHeight="8" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#9cecf5"/></marker>
+            </defs>
+            {/* Main physical plumbing: deep well -> pump -> mainline -> both beds */}
+            <g fill="none" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M78 315 V230 H125" stroke="#347e91" strokeWidth="8" opacity=".9"/>
+              <path d="M183 230 H920" stroke={s.pump ? "url(#pipeFlow)" : "#28606d"} strokeWidth="9" opacity={s.pump ? 1 : .75}/>
+              <path d="M450 230 V150 H530 M530 150 H560 V230" stroke={s.mode?.toLowerCase().includes("fert") ? "#e4b65b" : "#347e91"} strokeWidth="7" strokeDasharray={s.mode?.toLowerCase().includes("fert") ? "0" : "8 7"} opacity=".95"/>
+              <path d="M740 230 V105 H785 M740 230 V410 H785" stroke={s.pump && (s.v1 || s.v2) ? "url(#pipeFlow)" : "#28606d"} strokeWidth="8" opacity={s.pump ? 1 : .8}/>
+              <path d="M785 105 H945 M785 410 H945" stroke={s.pump && (s.v1 || s.v2) ? "url(#pipeFlow)" : "#28606d"} strokeWidth="8" markerEnd="url(#waterArrow)"/>
+              {s.pump && <path d="M220 230 H415 M585 230 H710 M800 105 H900 M800 410 H900" stroke="#b6f4fb" strokeWidth="2.5" strokeDasharray="12 14" className="ag-water-flow"/>}
+            </g>
+            {/* Well and pump */}
+            <rect x="28" y="315" width="105" height="105" rx="10" fill="#123d4a" stroke="#4bc6df" strokeWidth="2"/><path d="M30 340 Q48 330 65 340 T100 340 V418 H30Z" fill="#1e7184" opacity=".8"/><text x="80" y="385" fill="#e7f4f1" textAnchor="middle" fontSize="14" fontWeight="700">Deep well</text>
+            <rect x="45" y="194" width="62" height="30" rx="6" fill="#173f4b" stroke="#7abac8"/><text x="76" y="213" fill="#e7f4f1" textAnchor="middle" fontSize="12" fontWeight="700">FV-1</text><text x="76" y="184" fill="#8eafb4" textAnchor="middle" fontSize="11">Foot valve</text>
+            <circle cx="153" cy="230" r="31" fill="#164653" stroke="#4bc6df" strokeWidth="3"/><text x="153" y="237" fill="#e7f4f1" textAnchor="middle" fontSize="25" fontWeight="800">P</text><text x="153" y="278" fill="#e7f4f1" textAnchor="middle" fontSize="13" fontWeight="800">P-1 · 0.5 HP</text><text x="153" y="296" fill={s.pump ? "#4cbf78" : "#8eafb4"} textAnchor="middle" fontSize="12">Pump {s.pump ? "ON" : "OFF"}</text>
+            <text x="95" y="305" fill="#8eafb4" fontSize="11">1 in suction</text>
+            {/* Reducer and flow sensor */}
+            <path d="M235 218 L260 230 L235 242 Z" fill="#b6dce4" stroke="#4bc6df" strokeWidth="1.5"/><text x="247" y="260" fill="#8eafb4" textAnchor="middle" fontSize="11">RD-1</text>
+            <rect x="286" y="211" width="48" height="38" rx="18" fill="#173f4b" stroke="#4bc6df" strokeWidth="2"/><text x="310" y="235" fill="#e7f4f1" textAnchor="middle" fontSize="13" fontWeight="800">F</text><text x="310" y="270" fill="#8eafb4" textAnchor="middle" fontSize="11">FS-1</text><text x="310" y="284" fill="#8eafb4" textAnchor="middle" fontSize="10">Flow sensor</text>
+            <rect x="365" y="212" width="58" height="36" rx="7" fill={s.v1 || s.v2 ? "#225f47" : "#173f4b"} stroke="#4bc6df"/><path d="M386 216 L402 230 L386 244 M402 216 L386 230 L402 244" stroke="#c6f6fb" strokeWidth="2" fill="none"/><text x="394" y="268" fill="#8eafb4" textAnchor="middle" fontSize="11">BV-1</text>
+            <text x="505" y="254" fill="#8eafb4" textAnchor="middle" fontSize="11">1/2 in mainline</text>
+            {/* Fertigation assembly */}
+            <rect x="455" y="25" width="145" height="74" rx="9" fill="#173f4b" stroke="#e4b65b" strokeWidth="2"/><path d="M470 46 Q495 38 520 46 T585 46" fill="none" stroke="#e4b65b" strokeWidth="2"/><text x="527" y="68" fill="#f5e8c9" textAnchor="middle" fontSize="14" fontWeight="800">Fertilizer tank</text><text x="527" y="85" fill="#d4c29c" textAnchor="middle" fontSize="11">FT-1</text>
+            <path d="M527 99 V150" stroke="#e4b65b" strokeWidth="4" strokeDasharray="7 6"/><rect x="493" y="118" width="68" height="24" rx="5" fill="#4c3e25" stroke="#e4b65b"/><text x="527" y="134" fill="#f5e8c9" textAnchor="middle" fontSize="11" fontWeight="700">INJ-1</text><text x="574" y="174" fill="#d4c29c" fontSize="10">Venturi</text>
+            <rect x="430" y="132" width="35" height="25" rx="5" fill="#173f4b" stroke="#4bc6df"/><text x="447" y="148" fill="#e7f4f1" textAnchor="middle" fontSize="10" fontWeight="700">BV-2</text>
+            <rect x="575" y="132" width="35" height="25" rx="5" fill="#173f4b" stroke="#4bc6df"/><text x="592" y="148" fill="#e7f4f1" textAnchor="middle" fontSize="10" fontWeight="700">BV-3</text>
+            <rect x="635" y="211" width="58" height="38" rx="7" fill={s.mode?.toLowerCase().includes("fert") ? "#6b5122" : "#173f4b"} stroke={s.mode?.toLowerCase().includes("fert") ? "#e4b65b" : "#4bc6df"}/><path d="M650 216 L665 230 L650 244 M665 216 L650 230 L665 244" stroke="#c6f6fb" strokeWidth="2" fill="none"/><text x="664" y="268" fill="#8eafb4" textAnchor="middle" fontSize="11">BV-4</text>
+            <text x="620" y="292" fill={s.mode?.toLowerCase().includes("fert") ? "#e4b65b" : "#8eafb4"} textAnchor="middle" fontSize="11">Fertigation {s.mode?.toLowerCase().includes("fert") ? "ACTIVE" : "standby"}</text>
+            {/* Solenoid valves and beds */}
+            <rect x="714" y="83" width="53" height="43" rx="7" fill={s.v1 ? "#225f47" : "#173f4b"} stroke={s.v1 ? "#4cbf78" : "#4bc6df"} strokeWidth="2"/><path d="M725 92 L741 105 L725 118 M741 92 L725 105 L741 118" stroke="#d8f6fb" strokeWidth="2" fill="none"/><text x="740" y="69" fill="#e7f4f1" textAnchor="middle" fontSize="12" fontWeight="800">SV-1</text><text x="740" y="143" fill={s.v1 ? "#4cbf78" : "#8eafb4"} textAnchor="middle" fontSize="11">{s.v1 ? "OPEN" : "CLOSED"}</text>
+            <rect x="714" y="388" width="53" height="43" rx="7" fill={s.v2 ? "#225f47" : "#173f4b"} stroke={s.v2 ? "#4cbf78" : "#4bc6df"} strokeWidth="2"/><path d="M725 397 L741 410 L725 423 M741 397 L725 410 L741 423" stroke="#d8f6fb" strokeWidth="2" fill="none"/><text x="740" y="374" fill="#e7f4f1" textAnchor="middle" fontSize="12" fontWeight="800">SV-2</text><text x="740" y="448" fill={s.v2 ? "#4cbf78" : "#8eafb4"} textAnchor="middle" fontSize="11">{s.v2 ? "OPEN" : "CLOSED"}</text>
+            <rect x="795" y="48" width="174" height="105" rx="10" fill="url(#bedGreen)" stroke={s.b1 == null ? "#6d8e94" : s.b1 < CFG.lowThreshold ? "#e0b15a" : s.b1 > CFG.highThreshold ? "#38a9e0" : "#4cbf78"} strokeWidth="2"/><text x="882" y="72" fill="#e7f4f1" textAnchor="middle" fontSize="15" fontWeight="800">Bed 1</text><text x="882" y="96" fill="#fff" textAnchor="middle" fontSize="23" fontWeight="800">{s.b1 == null ? "--%" : `${s.b1}%`}</text><text x="882" y="116" fill="#d1f5df" textAnchor="middle" fontSize="11">SP-1 · SP-2 · SP-3</text><text x="882" y="136" fill="#a6c8cc" textAnchor="middle" fontSize="10">2 moisture sensors</text>
+            <rect x="795" y="358" width="174" height="105" rx="10" fill="url(#bedGreen)" stroke={s.b2 == null ? "#6d8e94" : s.b2 < CFG.lowThreshold ? "#e0b15a" : s.b2 > CFG.highThreshold ? "#38a9e0" : "#4cbf78"} strokeWidth="2"/><text x="882" y="382" fill="#e7f4f1" textAnchor="middle" fontSize="15" fontWeight="800">Bed 2</text><text x="882" y="406" fill="#fff" textAnchor="middle" fontSize="23" fontWeight="800">{s.b2 == null ? "--%" : `${s.b2}%`}</text><text x="882" y="426" fill="#d1f5df" textAnchor="middle" fontSize="11">SP-4 · SP-5 · SP-6</text><text x="882" y="446" fill="#a6c8cc" textAnchor="middle" fontSize="10">2 moisture sensors</text>
+            <text x="28" y="472" fill="#8eafb4" fontSize="12">Pump: {s.pump ? "ON" : "OFF"} · Flow: {s.flow.toFixed(1)} L/min · System: {s.status}</text>
+            <text x="28" y="493" fill="#8eafb4" fontSize="11">Valve indicators show commanded state; pipe glow indicates pump/valve command, not independent flow verification.</text>
           </svg>
         </div>
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted"><span className="inline-flex items-center gap-2"><i className="h-2 w-2 rounded-full bg-ok"/>Optimal moisture</span><span className="inline-flex items-center gap-2"><i className="h-2 w-2 rounded-full bg-warn"/>Below threshold</span><span className="inline-flex items-center gap-2"><i className="h-2 w-2 rounded-full bg-[#38a9e0]"/>Above upper threshold</span><span className="inline-flex items-center gap-2"><i className="h-2 w-2 rounded-full bg-faint"/>No reading / inactive</span></div>
       </Card>
 
-      <SectionTitle>System health & alerts</SectionTitle>
-      <div className="grid gap-3 md:grid-cols-2">
-        {alerts.map((a, i) => <div key={`${a.title}-${i}`} className={`flex gap-3 rounded-2xl border p-4 ${a.level === "alert" ? "border-bad/40 bg-bad/10" : a.level === "warn" ? "border-warn/40 bg-warn/10" : "border-line bg-surface"}`}><span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${a.level === "alert" ? "bg-bad" : a.level === "warn" ? "bg-warn" : "bg-ok"}`}/><div><p className="text-sm font-extrabold">{a.title}</p><p className="mt-1 text-xs leading-5 text-muted">{a.detail}</p></div></div>)}
-      </div>
+
 
       <SectionTitle>Today</SectionTitle>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
