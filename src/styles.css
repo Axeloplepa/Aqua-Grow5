@@ -30,19 +30,59 @@
     line-height: 1.5;
   }
   button:not(:disabled), [role="button"]:not(:disabled) { cursor: pointer; }
+  .nav-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: #245863 transparent;
+  }
+  .nav-scroll::-webkit-scrollbar { width: 8px; }
+  .nav-scroll::-webkit-scrollbar-track { background: transparent; }
+  .nav-scroll::-webkit-scrollbar-thumb {
+    background: #245863;
+    border-radius: 99px;
+  }
 }
 
 @keyframes logo-in {
-  0% { opacity: 0; transform: scale(0.86) translateY(12px); }
-  55% { opacity: 1; transform: scale(1.03) translateY(0); }
-  100% { opacity: 1; transform: scale(1) translateY(0); }
+  0% { opacity: 0; transform: perspective(700px) rotateY(-38deg) rotateZ(-12deg) scale(.72); filter: blur(10px) saturate(.45); }
+  38% { opacity: 1; filter: blur(0) saturate(1.25); }
+  68% { transform: perspective(700px) rotateY(8deg) rotateZ(3deg) scale(1.035); }
+  100% { opacity: 1; transform: perspective(700px) rotateY(0) rotateZ(0) scale(1); filter: blur(0) saturate(1); }
 }
+@keyframes ring-draw {
+  from { opacity: 0; transform: rotate(-80deg) scale(.68); }
+  to { opacity: 1; transform: rotate(0) scale(1); }
+}
+@keyframes orbit-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes glint-sweep {
+  0%, 18% { transform: translateX(-180%) rotate(25deg); opacity: 0; }
+  35% { opacity: .75; }
+  68%, 100% { transform: translateX(180%) rotate(25deg); opacity: 0; }
+}
+@keyframes wordmark-rise {
+  0%, 35% { opacity: 0; transform: translateY(14px); letter-spacing: .4em; }
+  100% { opacity: 1; transform: translateY(0); letter-spacing: .24em; }
+}
+@keyframes progress-sweep {
+  0% { transform: scaleX(0); transform-origin: left; }
+  75% { transform: scaleX(1); transform-origin: left; }
+  100% { transform: scaleX(0); transform-origin: right; }
+}
+.logo-assembly { position: relative; isolation: isolate; display: grid; place-items: center; width: min(70vw, 17rem); aspect-ratio: 1; }
+.logo-assembly > img { position: relative; z-index: 2; width: 76%; max-width: none; box-shadow: 0 18px 65px rgba(0,0,0,.38), 0 0 42px rgba(60,154,98,.18); }
+.logo-ring { position: absolute; inset: 3%; border: 1px solid rgba(75,198,223,.42); border-radius: 50%; opacity: 0; }
+.logo-ring-one { border-left-color: transparent; border-bottom-color: rgba(76,191,120,.75); animation: ring-draw 1.2s .08s cubic-bezier(.2,.8,.2,1) both; }
+.logo-ring-two { inset: 10%; border-style: dashed; border-color: rgba(231,244,241,.22); animation: ring-draw 1.35s .18s cubic-bezier(.2,.8,.2,1) both; }
+.logo-orbit { position: absolute; inset: -2%; border-radius: 50%; z-index: 3; animation: orbit-spin 2.8s linear infinite; }
+.logo-orbit span { position: absolute; top: 8%; left: 50%; width: 9px; height: 9px; border-radius: 50%; background: #71e1f4; box-shadow: 0 0 16px #4bc6df, 0 0 28px rgba(75,198,223,.6); }
+.logo-glint { position: absolute; z-index: 4; inset: 12% 20%; width: 24%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.7), transparent); filter: blur(4px); transform: translateX(-180%) rotate(25deg); animation: glint-sweep 1.9s .35s ease-in-out both; pointer-events: none; }
+.splash-wordmark { opacity: 0; animation: wordmark-rise .7s .55s ease-out forwards; }
+.splash-progress { display: block; width: 132px; height: 2px; margin: 18px auto 0; border-radius: 999px; background: linear-gradient(90deg, #3c9a62, #4bc6df); transform: scaleX(0); animation: progress-sweep 1.7s .6s ease-in-out both; box-shadow: 0 0 12px rgba(75,198,223,.4); }
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .anim-logo, .anim-up { animation: none !important; }
+  .anim-logo, .anim-up, .logo-ring, .logo-orbit, .logo-glint, .splash-wordmark, .splash-progress { animation: none !important; opacity: 1 !important; transform: none !important; filter: none !important; }
 }
-.anim-logo { animation: logo-in 1.15s cubic-bezier(.2,.8,.2,1) both; }
+.anim-logo { animation: logo-in 1.45s .08s cubic-bezier(.2,.8,.2,1) both; }
 .anim-up { animation: fade-up .45s ease both; }
